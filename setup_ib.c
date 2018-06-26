@@ -168,6 +168,11 @@ int setup_ib()
     ret = ibv_query_device(ib_res.ctx, &ib_res.dev_attr);
     check(ret == 0, "Failed to query device");
 
+    /* create cq */
+    ib_res.cq = ibv_create_cq(ib_res.ctx, ib_res.dev_attr.max_cqe,
+            NULL, NULL, 0);
+    check(ib_res.cq != NULL, "Failed to create cq");
+
     /* create qp */
     struct ibv_qp_init_attr qp_init_attr = {
         .send_cq = ib_res.cq,
