@@ -16,7 +16,7 @@ void destory_env();
 int main(int argc, char *argv[])
 {
     int ret = 0;
-    if (argc == 4)
+    if (argc == 5)
     {
         config_info.is_server = false;
         config_info.server_name = argv[1];
@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
         config_info.num_concurr_msgs = atoi(argv[3]);
         config_info.sock_port = argv[4];
     }
-    else if(argc == 3)
+    else if(argc == 4)
     {
         config_info.is_server = true;
         config_info.msg_size    = atoi(argv[1]);
