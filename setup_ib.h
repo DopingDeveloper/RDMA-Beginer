@@ -14,6 +14,9 @@ struct IBResource {
 
     char    *ib_buf;
     size_t  ib_buf_size;
+
+    uint32_t rkey;
+    uint64_t raddr;
 };
 
 extern struct IBResource ib_res;

@@ -35,6 +35,9 @@ int connect_qp_server()
     local_qp_info.lid   = ib_res.port_attr.lid;
     local_qp_info.qp_num = ib_res.qp->qp_num;
 
+    local_qp_info.rkey = ib_res.mr->rkey;
+    local_qp_info.raddr = (uintptr_t) ib_res.ib_buf;
+
     /* sock.c sock_get_qp_info to get qp_nifo from client */
     ret = sock_get_qp_info(peer_sockfd, &remote_qp_info);
     check(ret == 0, "Failed to get qp_info from client");
@@ -43,6 +46,9 @@ int connect_qp_server()
     ret = sock_set_qp_info (peer_sockfd, &local_qp_info);
     check(ret == 0, "Failed to send qp_info to client");
 
+    /* store rkey and raddr info */
+    ib_res.rkey = remote_qp_info.rkey;
+    ib_res.raddr = remote_qp_info.raddr;
 
     /* change send QP state to RTS */
     ret = modify_qp_to_rts(ib_res.qp, remote_qp_info.qp_num,
@@ -52,6 +58,8 @@ int connect_qp_server()
     log(LOG_SUB_HEADER, "Start of IB Config");
     log("\tqp[%"PRIu32"] <-> qp[%"PRIu32"]",
             ib_res.qp->qp_num, remote_qp_info.qp_num);
+    log("\traddr[%"PRIu64"] <-> raddr[%"PRIu64"]",
+            local_qp_info.raddr, ib_res.raddr);
     log(LOG_SUB_HEADER, "End of IB Config");
 
     /* sock.c sock_read and sock-write to sync with clients */
@@ -93,6 +101,8 @@ int connect_qp_client()
     /* init local qp_info */
     local_qp_info.lid = ib_res.port_attr.lid;
     local_qp_info.qp_num = ib_res.qp->qp_num;
+    local_qp_info.rkey = ib_res.mr->rkey;
+    local_qp_info.raddr = (uintptr_t) ib_res.ib_buf;
 
     /* sock.c sock_set_qp_info to send qp_info to server*/
     ret = sock_set_qp_info(peer_sockfd, &local_qp_info);
@@ -101,6 +111,10 @@ int connect_qp_client()
     /* sock.c sock_get_qp_info to get qp_info from server */
     ret = sock_get_qp_info(peer_sockfd, &remote_qp_info);
     check(ret == 0, "Failed to get qp_info from server");
+
+    /* store rkey and raddr info */
+    ib_res.rkey = remote_qp_info.rkey;
+    ib_res.raddr = remote_qp_info.raddr;
 
     /* change QP state to RTS */
     ret = modify_qp_to_rts(ib_res.qp, remote_qp_info.qp_num,
@@ -111,6 +125,8 @@ int connect_qp_client()
     log(LOG_SUB_HEADER, "IB Config");
     log("\tqp[%"PRIu32"] <-> qp[%"PRIu32"]",
             ib_res.qp->qp_num, remote_qp_info.qp_num);
+    log("\traddr[%"PRIu64"] <-> qp[%"PRIu64"]",
+            local_qp_info.raddr, ib_res.raddr);
     log(LOG_SUB_HEADER, "End of IB Config");
 
     /* sock.c sock_read and sock_write to sync with server */
@@ -153,7 +169,11 @@ int setup_ib()
     check(ret == 0, "Failed to query IB port information.");
 
     /* register mr */
-    ib_res.ib_buf_size = config_info.msg_size * config_info.num_concurr_msgs;
+    /* set the buf_size (msg_size + 1 ) * num_concurr_msgs */
+    /* the recv buffer is of size msg_size * num_concurr_msgs */
+    /* followed by a sending buffer of size msg_size since we */
+    /* assume all msgs are of the same content */
+    ib_res.ib_buf_size = config_info.msg_size * (config_info.num_concurr_msgs + 1);
     ib_res.ib_buf = (char *) memalign(4096, ib_res.ib_buf_size);
     check (ib_res.ib_buf != NULL, "Failed to allocate ib_buf");
 
@@ -163,6 +183,13 @@ int setup_ib()
             IBV_ACCESS_REMOTE_READ |
             IBV_ACCESS_REMOTE_WRITE);
     check(ib_res.mr != NULL, "Failed to register mr");
+
+    /* reset receiving buffer to all '0' */
+    size_t buf_len = config_info.msg_size * config_info.num_concurr_msgs;
+    memset(ib_res.ib_buf, '\0', buf_len);
+
+    /* set sending buffer to all 'A' */
+    memset(ib_res.ib_buf + buf_len, 'A', config_info.msg_size);
 
     /* query IB device attr */
     ret = ibv_query_device(ib_res.ctx, &ib_res.dev_attr);
