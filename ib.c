@@ -121,7 +121,7 @@ int post_recv(uint32_t req_size, uint32_t lkey, uint64_t wr_id,
 }
 
 
-int post_write_signaled(uint32_t, req_size, uint32_t lkey, uint64_t wr_id,
+int post_write_signaled(uint32_t req_size, uint32_t lkey, uint64_t wr_id,
                         struct ibv_qp *qp, char *buf,
                         uint64_t raddr, uint32_t rkey)
 {
@@ -136,11 +136,11 @@ int post_write_signaled(uint32_t, req_size, uint32_t lkey, uint64_t wr_id,
 
     struct ibv_send_wr send_wr = {
         .wr_id = wr_id,
-        .sig_list = &list,
+        .sg_list = &list,
         .num_sge = 1,
         .opcode = IBV_WR_RDMA_WRITE,
         .send_flags = IBV_SEND_SIGNALED,
-        .wr.rdma.remote_addr = raadr,
+        .wr.rdma.remote_addr = raddr,
         .wr.rdma.rkey = rkey,
     };
 
@@ -148,7 +148,7 @@ int post_write_signaled(uint32_t, req_size, uint32_t lkey, uint64_t wr_id,
     return ret;
 }
 
-int post_write_unsignaled(uint32_t, req_size, uint32_t lkey, uint64_t wr_id,
+int post_write_unsignaled(uint32_t req_size, uint32_t lkey, uint64_t wr_id,
                         struct ibv_qp *qp, char *buf,
                         uint64_t raddr, uint32_t rkey)
 {
@@ -163,10 +163,10 @@ int post_write_unsignaled(uint32_t, req_size, uint32_t lkey, uint64_t wr_id,
 
     struct ibv_send_wr send_wr = {
         .wr_id = wr_id,
-        .sig_list = &list,
+        .sg_list = &list,
         .num_sge = 1,
         .opcode = IBV_WR_RDMA_WRITE,
-        .wr.rdma.remote_addr = raadr,
+        .wr.rdma.remote_addr = raddr,
         .wr.rdma.rkey = rkey,
     };
 

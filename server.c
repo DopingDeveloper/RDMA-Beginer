@@ -52,14 +52,14 @@ void *server_thread(void *arg)
 
     /* pre-post writes */
     for (i = 0; i < num_concurr_msgs; i++) {
-        post_write_unsignaled(msg_size, leky, 0, qp, send_buf_ptr, raddr, rkey);
+        post_write_unsignaled(msg_size, lkey, 0, qp, send_buf_ptr, raddr, rkey);
         buf_offset = (buf_offset + msg_size) % buf_size;
         raddr = raddr_base + buf_offset;
     }
 
     while (ops_count < TOT_NUM_OPS) {
         /* loop till receive a msg from server */
-        while ((*msg-start != 'A') && (*msg_end != 'A')) {
+        while ((*msg_start != 'A') && (*msg_end != 'A')) {
         }
 
         /* reset recv buffer */
@@ -69,9 +69,9 @@ void *server_thread(void *arg)
         ops_count += 1;
 
         if ((ops_count % SIG_INTERVAL) == 0) {
-            ret = post_write_signaled(msg_size, lkey, 0, qp, send_buf,ptr, raddr, rkey);
+            ret = post_write_signaled(msg_size, lkey, 0, qp, send_buf_ptr, raddr, rkey);
         } else {
-            ret = post_write_signaled(msg_size, lkey, 0, qp, send_buf,ptr, raddr, rkey);
+            ret = post_write_signaled(msg_size, lkey, 0, qp, send_buf_ptr, raddr, rkey);
         }
 
         buf_offset = (buf_offset + msg_size) % buf_size;
